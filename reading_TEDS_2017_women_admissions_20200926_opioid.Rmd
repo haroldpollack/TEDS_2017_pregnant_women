@@ -1,0 +1,129 @@
+---
+title: "reading_TEDS_2017_women_admissions_20200926_opioid"
+author: "Harold Pollack"
+date: "9/26/2020"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+This program updates to 2017 data the results reported here https://www.samhsa.gov/data/sites/default/files/report_2724/ShortReport-2724.html
+from the 2012 Treatment Episodes Data Set using data from the 2017 TEDS Admissions data file. This is the dataset of admissions at speciality treatment providers who receive at least some public funding or reimbursement. It does not include physician/NP office-based medication opioid use disorder treatment. So the methadone numbers are more comprehensive than those for buprenorphine/suboxone.Note that the numbers below are treatment admissions, not unique individual patients. Some patients have multiple episodes that are not distinguished within these data.
+
+From the TEDS codebook:
+The Treatment Episode Data Set (TEDS) system serves as a repository of treatment data routinely collected by states for the purposes of monitoring their substance use treatment systems. It is comprised of selected data items from states’ administrative records that are converted to a standardized format which is consistent across all states. These standardized data constitute TEDS.
+The TEDS system is comprised of two major components: the admissions data set (TEDS-A) and the discharges data set (TEDS-D). 
+
+Further information may also be found here:
+https://www.ncbi.nlm.nih.gov/books/NBK541398/
+Data unzipped from https://www.datafiles.samhsa.gov/sites/default/files/field-uploads-protected/studies/TEDS-A-2017/TEDS-A-2017-datasets/TEDS-A-2017-DS0001/TEDS-A-2017-DS0001-bundles-with-study-info/TEDS-A-2017-DS0001-bndl-data-tsv.zip
+
+```{r setup, include=FALSE}
+library("formattable")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Program that includes opioid disorder admits or primary substance of misuse is (5,6,7)
+
+```{r read admissions dataset}
+mydata <- read.csv("/Users/haroldpollack/Documents/TEDS/tedsa_puf_2017.csv")
+myvars <- c("SERVICES", "METHUSE", "DSMCRIT","HERFLG","STFIPS","SUB1","AGE","GENDER","PREG")
+newdata <- mydata[myvars]
+#
+#     dopioid captures opioid dependence and abuse dx
+#     In contrast, dopioid2 captures primary substance of use (SUB1) in the heroin/opioid space
+#     I keep everyone who has either dopioid or dopioid2
+#     HERFLG is a heroin use flag
+#  Data from https://www.datafiles.samhsa.gov/study-dataset/treatment-episode-data-set-admissions-2017-teds-2017-ds0001-nid18474
+#
+#
+newdata$dopioid<-(newdata$DSMCRIT==5|newdata$DSMCRIT==12)
+#
+# opioid dependence is DSMCRIT=5
+# opioid abuse is DSMCRIT=12
+#
+newdata$dopioid2<-(newdata$SUB1==5|newdata$SUB1==6|newdata$SUB1==7)
+newdata <- newdata[ which(newdata$dopioid==TRUE |newdata$dopioid2==TRUE ), ]
+nobs_opioid<-nrow(newdata)
+print( paste("Number of admissions to TEDS-reporting heroin/opioid treatment--inclusive definition: ", nobs_opioid)) 
+tab <- with(newdata, table(HERFLG,SERVICES))
+#tab
+table(newdata$dopioid,newdata$dopioid2)
+newdata$dheroin<-(newdata$SUB1==5)
+tab_heroin<- with(newdata, table(dheroin,SERVICES))
+prop.table(tab_heroin, margin = 1)
+#
+#   METHUSE: Planned medication-assisted opioid therapy
+#
+# This field identifies whether the use of opioid medications such as methadone, buprenorphine,
+#
+tab_METHUSE<- with(newdata, table(dheroin,METHUSE))
+tab_METHUSE
+table(newdata$METHUSE)
+table(newdata$METHUSE,newdata$SERVICES)
+tab_METHUSE2<- with(newdata, table(METHUSE,SERVICES))
+prop.table(tab_METHUSE2, margin = 1)
+table(newdata$HERFLG)
+```
+
+Now restrict to Women
+
+```{r restrict to women admissions}
+newdata <- newdata[ which(newdata$GENDER==2), ]
+nobs_women<-nrow(newdata)
+print( paste("Number of women admissions  to TEDS-reporting heroin/opioid treatment: ", nobs_women)) 
+table(newdata$SERVICES)
+tab <- with(newdata, table(HERFLG,SERVICES))
+tab
+table(newdata$dopioid,newdata$dopioid2)
+newdata$dheroin<-(newdata$SUB1==5)
+tab_heroin<- with(newdata, table(dheroin,SERVICES))
+tab_heroin
+tab_METHUSE<- with(newdata, table(dheroin,METHUSE))
+tab_METHUSE
+table(newdata$METHUSE)
+table(newdata$HERFLG)
+
+```
+
+Now restrict to women of childbearing age
+
+```{r restrict to women of childbearing age}
+newdata <- newdata[ which(newdata$AGE>=3 & newdata$AGE<=8 ), ]
+nobs_women_childbearing<-nrow(newdata)
+print( paste("Number of women 18-44 admissions to TEDS-reporting heroin/opioid treatment: ", nobs_women_childbearing)) 
+table(newdata$SERVICES)
+tab <- with(newdata, table(HERFLG,SERVICES))
+tab
+table(newdata$dopioid,newdata$dopioid2)
+newdata$dheroin<-(newdata$SUB1==5)
+tab_heroin<- with(newdata, table(dheroin,SERVICES))
+tab_heroin
+tab_METHUSE<- with(newdata, table(dheroin,METHUSE))
+tab_METHUSE
+table(newdata$METHUSE)
+table(newdata$HERFLG)
+
+```
+
+Now restrict to pregnant women
+
+```{r restrict to pregnant women }
+newdata <- newdata[ which(newdata$PREG==1), ]
+nobs_preg_women<-nrow(newdata)
+print( paste("Number of pregnant women 18-44 admissions to TEDS-reporting heroin/opioid treatment: ", nobs_preg_women)) 
+table(newdata$SERVICES)
+tab <- with(newdata, table(HERFLG,SERVICES))
+tab
+table(newdata$dopioid,newdata$dopioid2)
+newdata$dheroin<-(newdata$SUB1==5)
+tab_heroin<- with(newdata, table(dheroin,SERVICES))
+tab_heroin
+tab_METHUSE<- with(newdata, table(dheroin,METHUSE))
+tab_METHUSE
+table(newdata$METHUSE)
+table(newdata$HERFLG)
+
+```
+
